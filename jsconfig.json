@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "checkJs": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "assets/**/*.js",
+    "shared/**/*.js",
+    "shared/**/*.d.ts",
+    "works/**/*.js"
+  ]
+}
+

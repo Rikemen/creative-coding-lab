@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>作品カード検索 | Rikemen Creative Coding Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/css/gallery.css" />
+  </head>
+  <body>
+    <nav class="site-navbar" aria-label="グローバルナビゲーション">
+      <div class="site-navbar__inner">
+        <a href="./index.html" class="site-brand">
+          <span class="site-brand__pill">RIKEMEN</span>
+          <span>Creative Coding Lab</span>
+        </a>
+        <div class="site-navbar__links">
+          <a href="./index.html" class="site-navbar__link">作品カード検索</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero-banner">
+      <div class="hero-banner__inner">
+        <div>
+          <span class="hero-eyebrow">p5.js × Firebase ハンズオン図鑑</span>
+          <h1 class="hero-title">システムの仕組みを、<br />アート作品カードで集めて学ぼう。</h1>
+          <p class="hero-lead">
+            データベース（CRUD）、リアルタイム通信、認証・認可——抽象的なWebシステムの裏側を、
+            Rikemenの仲間たちと一緒にインタラクティブなメディアアートとして体験・実装できるギャラリーです。
+          </p>
+          <div id="env-notice-slot"></div>
+        </div>
+
+        <div class="hero-characters" aria-hidden="true">
+          <div class="hero-char-card">
+            <img src="./assets/images/rikemen-rikejo/01_Feru.png" alt="" />
+          </div>
+          <div class="hero-char-card">
+            <img src="./assets/images/rikemen-rikejo/06_Fara.PNG" alt="" />
+          </div>
+          <div class="hero-char-card">
+            <img src="./assets/images/rikemen-rikejo/10_Newt.png" alt="" />
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="catalog-container">
+      <nav class="breadcrumb" aria-label="パンくずリスト">
+        <span>トップ</span>
+        <span aria-hidden="true">&gt;</span>
+        <span>作品カード検索</span>
+      </nav>
+
+      <section class="search-panel" aria-label="カード検索条件">
+        <div class="search-count" aria-live="polite">
+          <span id="hit-count-num" class="search-count__num">0</span>
+          <span class="search-count__unit">件</span>
+        </div>
+
+        <div class="search-input-wrap">
+          <input
+            id="filter-keyword"
+            type="search"
+            class="search-input"
+            placeholder="作品名・技術キーワード・関数名（例: onSnapshot）で検索"
+            aria-label="作品名やテキストで検索"
+          />
+        </div>
+
+        <select id="filter-category" class="search-select" aria-label="システム分野で絞り込み">
+          <option value="">すべてのシステム分野</option>
+        </select>
+      </section>
+
+      <div class="search-toolbar-sub">
+        <button id="btn-clear-filter" type="button" class="clear-filter-btn">
+          条件クリア
+        </button>
+      </div>
+
+      <section id="card-results-container" aria-label="作品カード一覧"></section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Rikemen &amp; Rikejo Creative Coding Lab — Media Art × Web Architecture</p>
+    </footer>
+
+    <script type="module" src="./assets/js/entrance.js"></script>
+  </body>
+</html>

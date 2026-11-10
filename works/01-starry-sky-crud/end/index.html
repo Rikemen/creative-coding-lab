@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Star CRUD (End) | Creative Coding Lab</title>
+  <!-- ビルドツールなしで公式ドキュメント通りのモジュール記述を可能にする Import Map -->
+  <script type="importmap">
+      {
+        "imports": {
+          "firebase/app": "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js",
+          "firebase/auth": "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js",
+          "firebase/firestore": "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js"
+        }
+      }
+    </script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.3/lib/p5.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #07080d;
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      /* スマホでのピンチズームや引っ張りリロードがキャンバス操作と干渉するのを防ぐ */
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 通信先（ローカルメモリかクラウドDBか）および認証状態を視覚化する最小インジケータ */
+    #system-hud {
+      position: fixed;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: max(12px, env(safe-area-inset-left));
+      max-width: calc(100vw - 24px);
+      padding: 6px 12px;
+      border-radius: 4px;
+      background: rgba(12, 14, 22, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 11px;
+      line-height: 1.45;
+      letter-spacing: 0.03em;
+      pointer-events: none;
+    }
+
+    #system-hud[data-state="error"] {
+      border-color: rgba(255, 99, 99, 0.6);
+      color: #ff9e9e;
+    }
+  </style>
+</head>
+
+<body>
+  <main id="canvas-container"></main>
+  <div id="system-hud" aria-live="polite">Initializing...</div>
+  <script type="module" src="./sketch.js"></script>
+</body>
+
+</html>

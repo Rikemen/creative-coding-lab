@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>01-starry-sky-crud タスク別アーキテクチャ変遷図解 | Rikemen Creative Coding Lab</title>
+  <style>
+    /*
+     * Rikemen Creative Coding Lab デザインシステム（DESIGN.md 準拠）
+     * 外部CDNに依存せず単一HTMLファイルでオフライン・CSP環境下でも完全に描画できるよう設計している。
+     */
+    :root {
+      --rikemen-blue: #0077da;
+      --rikemen-blue-dark: #005bb0;
+      --rikemen-blue-bright: #1992f6;
+      --surface-white: #ffffff;
+      --rikemen-ice: #f4f8fd;
+      --rikemen-sky: #e8f3ff;
+      --text-primary: #10243e;
+      --text-secondary: #47607e;
+      --text-muted: #6c829e;
+      --border-subtle: #d5e3f4;
+      --accent-yellow: #ffd43b;
+      --accent-amber: #f59f00;
+      --accent-amber-bg: #fff8db;
+      --accent-emerald: #0ca678;
+      --accent-emerald-bg: #e6fcf5;
+      --accent-purple: #7048e8;
+      --accent-purple-bg: #f3f0ff;
+      --night-navy: #0c192c;
+      --shadow-card: 0 8px 24px rgba(16, 36, 62, 0.07);
+      --shadow-elevated: 0 12px 32px rgba(0, 91, 176, 0.14);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      overflow-x: clip;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+      background-color: var(--rikemen-ice);
+      color: var(--text-primary);
+      line-height: 1.65;
+      overflow-x: clip;
+    }
+
+    /* ── ヒーローヘッダー ── */
+    .hero-header {
+      background: linear-gradient(135deg, var(--night-navy) 0%, var(--rikemen-blue-dark) 52%, var(--rikemen-blue) 100%);
+      color: var(--surface-white);
+      padding: 28px 20px 24px;
+      border-bottom: 4px solid var(--accent-yellow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 夜空テーマに合わせた控えめな星屑装飾 */
+    .hero-header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.45) 1.5px, transparent 2px),
+        radial-gradient(circle at 28% 72%, rgba(255, 212, 59, 0.5) 2px, transparent 3px),
+        radial-gradient(circle at 64% 18%, rgba(255, 255, 255, 0.35) 1.5px, transparent 2px),
+        radial-gradient(circle at 82% 62%, rgba(165, 216, 255, 0.55) 2px, transparent 3px),
+        radial-gradient(circle at 91% 28%, rgba(255, 255, 255, 0.4) 1.5px, transparent 2px);
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .hero-top-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .card-badge__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-yellow);
+      box-shadow: 0 0 8px var(--accent-yellow);
+    }
+
+    .doc-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .doc-link {
+      color: var(--surface-white);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 5px 12px;
+      border-radius: 8px;
+      transition: background 0.18s ease;
+    }
+
+    .doc-link:hover {
+      background: rgba(255, 255, 255, 0.24);
+    }
+
+    .hero-title {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 2.8vw, 28px);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+
+    .hero-subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.88);
+      max-width: 880px;
+    }
+
+    .hero-bottom-bar {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mode-switcher {
+      display: inline-flex;
+      background: rgba(12, 25, 44, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .mode-button {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .mode-button.is-active {
+      background: var(--surface-white);
+      color: var(--rikemen-blue-dark);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    .core-principles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .principle-chip {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 6px;
+      background: rgba(255, 212, 59, 0.16);
+      color: #fff3bf;
+      border: 1px solid rgba(255, 212, 59, 0.4);
+    }
+
+    /* ── メインコンテンツ枠 ── */
+    .main-content {
+      padding: 20px 16px 56px;
+    }
+
+    /* ── フェーズ＆タスク選択ステッパー ── */
+    .stepper-panel {
+      background: var(--surface-white);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 18px;
+    }
+
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 960px) {
+      .phase-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .phase-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .phase-box {
+      background: var(--rikemen-ice);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .phase-box.is-current-phase {
+      border-color: var(--rikemen-blue);
+      background: var(--rikemen-sky);
+    }
+
+    .phase-box__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .phase-box__tag {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--rikemen-blue-dark);
+    }
+
+    .phase-box__time {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .phase-box__title {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .task-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .task-pill {
+      appearance: none;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-white);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .task-pill:hover {
+      border-color: var(--rikemen-blue);
+      color: var(--rikemen-blue-dark);
+    }
+
+    .task-pill.is-visited {
+      background: #eef6ff;
+      border-color: #90c2f9;
+      color: var(--rikemen-blue-dark);
+    }
+
+    .task-pill.is-selected {
+      background: var(--rikemen-blue);
+      border-color: var(--rikemen-blue-dark);
+      color: var(--surface-white);
+      box-shadow: 0 3px 10px rgba(0, 119, 218, 0.32);
+      transform: translateY(-1px);
+    }
+
+    /* ── インタラクティブ図解ステージ ── */
+    .stage-card {
+      background: var(--surface-white);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .stage-topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 100%);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .stage-task-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .task-number-badge {
+      background: var(--rikemen-blue);
+      color: var(--surface-white);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .task-duration-badge {
+      background: var(--rikemen-sky);
+      color: var(--rikemen-blue-dark);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .stage-task-title {
+      margin: 0;
+      font-size: clamp(16px, 2vw, 20px);
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      appearance: none;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-white);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      border-color: var(--rikemen-blue);
+      background: var(--rikemen-sky);
+      color: var(--rikemen-blue-dark);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .nav-btn--primary {
+      background: var(--rikemen-blue);
+      border-color: var(--rikemen-blue-dark);
+      color: var(--surface-white);
+    }
+
+    .nav-btn--primary:hover:not(:disabled) {
+      background: var(--rikemen-blue-dark);
+      color: var(--surface-white);
+    }
+
+    /* ── 凡例バー ── */
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 20px;
+      background: #fafcff;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .legend-swatch--highlight {
+      background: var(--accent-amber-bg);
+      border: 2px solid var(--accent-amber);
+    }
+
+    .legend-swatch--active {
+      background: var(--surface-white);
+      border: 2px solid var(--rikemen-blue);
+    }
+
+    .legend-swatch--scaffold {
+      background: #f1f5f9;
+      border: 1.5px dashed #64748b;
+    }
+
+    .legend-swatch--standby {
+      background: #f8f9fa;
+      border: 1.5px dotted #94a3b8;
+    }
+
+    .legend-swatch--pending {
+      background: #f8fafc;
+      border: 1.5px dashed #cbd5e1;
+      opacity: 0.55;
+    }
+
+    .persistence-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .persistence-pill[data-kind="memory"] {
+      background: #fff4e6;
+      color: #d9480f;
+      border: 1px solid #ffc078;
+    }
+
+    .persistence-pill[data-kind="partial-cloud"] {
+      background: #e7f5ff;
+      color: #1864ab;
+      border: 1px solid #74c0fc;
+    }
+
+    .persistence-pill[data-kind="full-cloud"] {
+      background: var(--accent-emerald-bg);
+      color: #087f5b;
+      border: 1px solid #63e6be;
+    }
+
+    .persistence-pill[data-kind="dual"] {
+      background: var(--accent-purple-bg);
+      color: #5f3dc4;
+      border: 1px solid #b197fc;
+    }
+
+    /* ── SVG アーキテクチャ図キャンバス ── */
+    .diagram-viewport {
+      padding: 16px 16px 12px;
+      background: radial-gradient(circle at 50% 0%, #f4f9ff 0%, #ffffff 70%);
+      overflow-x: auto;
+    }
+
+    .arch-svg {
+      display: block;
+      width: 100%;
+      min-width: 780px;
+      max-width: 1120px;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    @keyframes flowDash {
+      to {
+        stroke-dashoffset: -24;
+      }
+    }
+
+    .edge-animated {
+      stroke-dasharray: 7 5;
+      animation: flowDash 0.9s linear infinite;
+    }
+
+    /* ── タスク詳細解説グリッド（図の下部） ── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      padding: 18px 20px 22px;
+      background: var(--rikemen-ice);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    @media (max-width: 860px) {
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .detail-panel {
+      background: var(--surface-white);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .detail-panel__title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--rikemen-blue-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .before-after-box {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .before-after-box {
+        grid-template-columns: 1fr;
+      }
+      .ba-arrow {
+        transform: rotate(90deg);
+        justify-self: center;
+      }
+    }
+
+    .ba-card {
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .ba-card--before {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: var(--text-secondary);
+    }
+
+    .ba-card--after {
+      background: #eef7ff;
+      border: 1.5px solid var(--rikemen-blue);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .ba-card__label {
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .ba-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--rikemen-blue);
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .flow-chip {
+      background: var(--rikemen-sky);
+      color: var(--text-primary);
+      border: 1px solid #b6d8fc;
+      border-radius: 7px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .flow-sep {
+      color: var(--rikemen-blue);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .meta-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .meta-list li {
+      background: #f8fbff;
+      border-left: 3px solid var(--rikemen-blue);
+      padding: 8px 12px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .meta-list strong {
+      color: var(--rikemen-blue-dark);
+    }
+
+    .file-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .file-tag {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: #fff8db;
+      color: #8a5200;
+      border: 1px solid #fcc419;
+    }
+
+    .zero-diff-callout {
+      background: var(--accent-emerald-bg);
+      border: 1px solid #63e6be;
+      color: #087f5b;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    /* ── 全13タスク俯瞰モード（一括スクロール表示） ── */
+    .all-tasks-section {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .all-tasks-section.is-visible {
+      display: flex;
+    }
+
+    .interactive-section.is-hidden {
+      display: none;
+    }
+
+    .phase-divider {
+      background: linear-gradient(90deg, var(--rikemen-blue-dark) 0%, var(--rikemen-blue) 100%);
+      color: var(--surface-white);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-left: 6px solid var(--accent-yellow);
+    }
+
+    /* ── タスク × レイヤー変遷マトリクス表 ── */
+    .matrix-card {
+      background: var(--surface-white);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .matrix-header {
+      margin-bottom: 14px;
+    }
+
+    .matrix-title {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .matrix-desc {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .matrix-scroll {
+      overflow-x: auto;
+    }
+
+    .matrix-table {
+      width: 100%;
+      min-width: 740px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      border: 1px solid var(--border-subtle);
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .matrix-table th {
+      background: var(--rikemen-ice);
+      color: var(--text-primary);
+      font-weight: 800;
+    }
+
+    .matrix-table td.task-cell {
+      text-align: left;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .matrix-row {
+      cursor: pointer;
+      transition: background 0.14s ease;
+    }
+
+    .matrix-row:hover {
+      background: #f0f7ff;
+    }
+
+    .matrix-row.is-selected-row {
+      background: #e6f2ff;
+      outline: 2px solid var(--rikemen-blue);
+    }
+
+    .cell-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .cell-badge--changed {
+      background: var(--accent-amber-bg);
+      color: #b45309;
+      border: 1px solid var(--accent-amber);
+    }
+
+    .cell-badge--active {
+      background: #eef7ff;
+      color: var(--rikemen-blue-dark);
+    }
+
+    .cell-badge--untouched {
+      background: var(--accent-emerald-bg);
+      color: #087f5b;
+    }
+
+    .cell-badge--none {
+      color: #cbd5e1;
+    }
+
+    .keyboard-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    @media print {
+      .hero-bottom-bar,
+      .stepper-panel,
+      .nav-controls {
+        display: none !important;
+      }
+      .interactive-section {
+        display: none !important;
+      }
+      .all-tasks-section {
+        display: flex !important;
+      }
+      .stage-card {
+        break-inside: avoid;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero-header">
+    <div class="container">
+      <div class="hero-top-row">
+        <span class="card-badge">
+          <span class="card-badge__dot"></span>
+          001 / LAB — ARCHITECTURE EVOLUTION GUIDE
+        </span>
+        <div class="doc-links">
+          <a class="doc-link" href="./incremental_tasks.md">📋 incremental_tasks.md</a>
+          <a class="doc-link" href="./implementation_plan.md">📐 implementation_plan.md</a>
+        </div>
+      </div>
+      <h1 class="hero-title">01-starry-sky-crud タスク別アーキテクチャ変遷図解</h1>
+      <p class="hero-subtitle">
+        全13ステップ（各5〜10分）を進めるごとに、<strong>ギャラリー額縁・p5.js描画層・Repository通信層・Cloud Firestore・認可ルール・Start教材</strong>のどこが立ち上がり、データの通り道がどう切り替わるかを可視化した1枚資料です。
+      </p>
+      <div class="hero-bottom-bar">
+        <div class="mode-switcher" role="tablist" aria-label="表示モード切替">
+          <button type="button" id="btn-mode-interactive" class="mode-button is-active" role="tab" aria-selected="true">
+            🎯 ステップ比較ビュー（Task切替）
+          </button>
+          <button type="button" id="btn-mode-all" class="mode-button" role="tab" aria-selected="false">
+            📜 全13タスク一括展開ビュー
+          </button>
+        </div>
+        <div class="core-principles">
+          <span class="principle-chip">鉄則1: 描画層(sketch.js)と通信層(repository.js)の完全分離</span>
+          <span class="principle-chip">鉄則2: モック先行 → Firebase後付け → Start逆算切り出し</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="container">
+      <!-- インタラクティブ比較モード -->
+      <section id="interactive-section" class="interactive-section" aria-label="ステップ別アーキテクチャ図解">
+        <div class="stepper-panel">
+          <div id="phase-grid" class="phase-grid"></div>
+        </div>
+
+        <article id="interactive-stage-container" class="stage-card"></article>
+      </section>
+
+      <!-- 全13タスク一括展開モード -->
+      <section id="all-tasks-section" class="all-tasks-section" aria-label="全13タスク一括図解"></section>
+
+      <!-- 全体俯瞰マトリクス（常時表示：クリックで該当タスクへジャンプ） -->
+      <section class="matrix-card" aria-label="タスク×アーキテクチャ層ヒートマップ">
+        <div class="matrix-header">
+          <h2 class="matrix-title">📊 13タスク × 6レイヤー 変遷マトリクス（疎結合の証明マップ）</h2>
+          <p class="matrix-desc">
+            行をクリックすると該当タスクの図解に切り替わります。<strong>Task 8〜11 のクラウド接続・認可フェーズで「描画層 (`sketch.js`)」が1行も変更されないこと</strong>に注目してください。
+          </p>
+        </div>
+        <div class="matrix-scroll">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>ギャラリー層<br />(catalog / 3画面)</th>
+                <th>型契約<br />(types.js)</th>
+                <th>描画・入力層<br />(sketch.js)</th>
+                <th>通信層<br />(repository.js)</th>
+                <th>Cloud / 認可層<br />(Auth / DB / Rules)</th>
+                <th>教材 / 検証層<br />(start / verify)</th>
+                <th>F5リロード時の挙動</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    /**
+     * システム全体を構成する15個のアーキテクチャ・コンポーネント座標定義。
+     * 全タスクで同一の空間配置を維持することで、タスク間の構造変化を視覚的な位置記憶として直感的に比較できるようにする。
+     */
+    const ARCHITECTURE_NODES = [
+      // 上段: ギャラリー額縁層 (y: 28..84)
+      {
+        id: "gallery-catalog",
+        x: 180,
+        y: 28,
+        w: 270,
+        h: 56,
+        title: "catalog.js + 01-starry-sky-crud.js",
+        subtitle: "カード番号 001 / LAB・ニュート定義",
+      },
+      {
+        id: "gallery-pages",
+        x: 526,
+        y: 28,
+        w: 280,
+        h: 56,
+        title: "index → detail → exhibition.html",
+        subtitle: "図鑑一覧・作品概要・Start/End切替ヘッダー",
+      },
+      {
+        id: "iframe-bridge",
+        x: 904,
+        y: 28,
+        w: 264,
+        h: 56,
+        title: "<iframe> サンドボックス境界",
+        subtitle: "ギャラリーUIを作品コードへ混ぜない壁",
+      },
+
+      // 中段左列: 描画・入力層 Presentation Layer (x: 30..330)
+      {
+        id: "html-hud",
+        x: 30,
+        y: 162,
+        w: 300,
+        h: 58,
+        title: "end/index.html (#system-hud)",
+        subtitle: "100dvh / touch-action: none / 接続表示",
+      },
+      {
+        id: "sketch-render",
+        x: 30,
+        y: 232,
+        w: 300,
+        h: 72,
+        title: "sketch.js: bootstrap & draw()",
+        subtitle: "stars[] 保持 / 4色パレット・十字フレア描画",
+      },
+      {
+        id: "sketch-input",
+        x: 30,
+        y: 316,
+        w: 300,
+        h: 72,
+        title: "sketch.js: タップ創造 & 短タップ進化",
+        subtitle: "空白→Create / 星500ms未満→4色×3等級Update",
+      },
+      {
+        id: "sketch-hold",
+        x: 30,
+        y: 400,
+        w: 300,
+        h: 68,
+        title: "sketch.js: 500ms長押し削除演出",
+        subtitle: "p.arc チャージリング → shootingStars[] 流れ星",
+      },
+
+      // 中段中央列: 型契約 & Repository 通信層 (x: 454..750)
+      {
+        id: "types-contract",
+        x: 454,
+        y: 162,
+        w: 296,
+        h: 58,
+        title: "end/types.js + vendor-types.d.ts",
+        subtitle: "Star / StarDraft / StarPatch JSDoc型契約",
+      },
+      {
+        id: "repo-session",
+        x: 454,
+        y: 232,
+        w: 296,
+        h: 60,
+        title: "repository.js: initializeSession()",
+        subtitle: "isFirebaseConfigured() 分岐・接続ラベル生成",
+      },
+      {
+        id: "repo-crud",
+        x: 454,
+        y: 304,
+        w: 296,
+        h: 86,
+        title: "repository.js: CRUD 4公開関数",
+        subtitle: "fetchStars / createStar / updateStar / deleteStar",
+      },
+      {
+        id: "repo-memory",
+        x: 454,
+        y: 412,
+        w: 296,
+        h: 60,
+        title: "fallbackStars[] (インメモリ配列)",
+        subtitle: "初期シード4星・ブラウザリロードで揮発",
+      },
+
+      // 中段右列: Firebase 基盤 & Cloud 層 (x: 874..1170)
+      {
+        id: "shared-firebase",
+        x: 874,
+        y: 162,
+        w: 296,
+        h: 58,
+        title: "shared/firebase.js",
+        subtitle: "getFirebaseClients / buildWorkCollectionPath",
+      },
+      {
+        id: "firebase-auth",
+        x: 874,
+        y: 232,
+        w: 296,
+        h: 58,
+        title: "Firebase Authentication",
+        subtitle: "signInAnonymously(auth) → 匿名 UID 発行",
+      },
+      {
+        id: "firestore-rules",
+        x: 874,
+        y: 302,
+        w: 296,
+        h: 70,
+        title: "firestore.rules (スキーマ認可壁)",
+        subtitle: "isValidStarCreate / Update・座標不変検証",
+      },
+      {
+        id: "firestore-db",
+        x: 874,
+        y: 396,
+        w: 296,
+        h: 76,
+        title: "Cloud Firestore (永続ストレージ)",
+        subtitle: "works/01-starry-sky-crud/stars/{starId}",
+      },
+
+      // 下段: ハンズオン教材 start/ 切り出し & 品質検証層 (y: 526..588)
+      {
+        id: "start-sync",
+        x: 180,
+        y: 526,
+        w: 270,
+        h: 62,
+        title: "start/sketch.js & start/types.js",
+        subtitle: "end/ と 1バイトの差分もない完全一致コピー",
+      },
+      {
+        id: "start-repo",
+        x: 526,
+        y: 526,
+        w: 280,
+        h: 62,
+        title: "start/repository.js (教材スタート地点)",
+        subtitle: "fallbackStars[] + TODO(Step 1〜4) ガイド",
+      },
+      {
+        id: "verify-script",
+        x: 904,
+        y: 526,
+        w: 264,
+        h: 62,
+        title: "verify-project.py (自動品質ゲート)",
+        subtitle: "構文・スマホ100dvh・Start/End完全一致検査",
+      },
+    ];
+
+    /**
+     * コンポーネント間の接続パス定義。
+     * 列間に専用のデータフロー回廊（幅124px）を確保し、ノード枠やバッジとの重なりを防ぐ。
+     */
+    const ARCHITECTURE_EDGES = [
+      {
+        id: "e-cat-pages",
+        path: "M 450 56 L 526 56",
+        label: "登録",
+        lx: 488,
+        ly: 56,
+      },
+      {
+        id: "e-pages-iframe",
+        path: "M 806 56 L 904 56",
+        label: "遷移",
+        lx: 855,
+        ly: 56,
+      },
+      {
+        id: "e-iframe-end",
+        path: "M 1036 84 L 1036 111 L 180 111 L 180 162",
+        label: "iframe読込",
+        lx: 596,
+        ly: 111,
+      },
+      {
+        id: "e-types-sketch",
+        path: "M 454 182 L 330 182",
+        label: "JSDoc型",
+        lx: 392,
+        ly: 182,
+      },
+      {
+        id: "e-session-hud",
+        path: "M 454 252 L 392 252 L 392 206 L 330 206",
+        label: "HUD状態",
+        lx: 392,
+        ly: 228,
+      },
+      {
+        id: "e-render-fetch",
+        path: "M 454 320 L 392 320 L 392 272 L 330 272",
+        label: "fetchStars()",
+        lx: 392,
+        ly: 294,
+      },
+      {
+        id: "e-input-crud",
+        path: "M 330 352 L 454 352",
+        label: "create / update",
+        lx: 392,
+        ly: 352,
+      },
+      {
+        id: "e-hold-delete",
+        path: "M 330 434 L 392 434 L 392 376 L 454 376",
+        label: "deleteStar(id)",
+        lx: 392,
+        ly: 434,
+      },
+      {
+        id: "e-crud-memory",
+        path: "M 602 390 L 602 412",
+        label: "配列R/W",
+        lx: 526,
+        ly: 401,
+      },
+      {
+        id: "e-repo-shared",
+        path: "M 750 248 L 812 248 L 812 190 L 874 190",
+        label: "設定・Path",
+        lx: 812,
+        ly: 190,
+      },
+      {
+        id: "e-session-auth",
+        path: "M 750 266 L 874 266",
+        label: "匿名認証(UID)",
+        lx: 812,
+        ly: 266,
+      },
+      {
+        id: "e-crud-db-direct",
+        path: "M 750 366 L 812 366 L 812 434 L 874 434",
+        label: "Firestore SDK",
+        lx: 812,
+        ly: 434,
+      },
+      {
+        id: "e-crud-rules",
+        path: "M 750 338 L 874 338",
+        label: "CRUD要求",
+        lx: 812,
+        ly: 338,
+      },
+      {
+        id: "e-rules-db",
+        path: "M 1022 372 L 1022 396",
+        label: "検証OKのみ",
+        lx: 946,
+        ly: 384,
+      },
+      {
+        id: "e-end-to-start",
+        path: "M 180 468 L 180 526",
+        label: "完全一致コピー",
+        lx: 254,
+        ly: 499,
+      },
+      {
+        id: "e-start-pair",
+        path: "M 450 557 L 526 557",
+        label: "import",
+        lx: 488,
+        ly: 557,
+      },
+      {
+        id: "e-verify-all",
+        path: "M 904 557 L 806 557",
+        label: "整合性検査",
+        lx: 855,
+        ly: 557,
+      },
+    ];
+
+    const PHASES = [
+      { id: 1, label: "Phase 1", title: "器の準備と図鑑登録", totalTime: "計 13分" },
+      { id: 2, label: "Phase 2", title: "型定義とp5.js星空アート", totalTime: "計 38分" },
+      { id: 3, label: "Phase 3", title: "Firestore接続と認可ルール", totalTime: "計 31分" },
+      { id: 4, label: "Phase 4", title: "start/切り出しと自動検証", totalTime: "計 11分" },
+    ];
+
+    /**
+     * 全13タスクそれぞれのアーキテクチャ状態スナップショットと解説データ。
+     */
+    const TASKS = [
+      {
+        taskNumber: 1,
+        phase: 1,
+        duration: "目安 5分",
+        title: "テンプレートから作品フォルダを複製する",
+        files: [
+          "works/01-starry-sky-crud/end/*",
+          "works/01-starry-sky-crud/start/*",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "F5リロード時: テンプレート初期状態（まだ星空未実装）",
+        beforeText: "works/_template の雛形のみが存在し、第1作のディレクトリ自体が存在しない状態。",
+        afterText: "works/01-starry-sky-crud/ 配下に4ファイル構成（index.html, types.js, repository.js, sketch.js）の器が誕生。",
+        flowSteps: [
+          "ブラウザで end/index.html を直接開く",
+          "Import Map で p5.js / Firebase SDK を解決",
+          "雛形の #canvas-container と #system-hud が起動",
+        ],
+        whyOrder: "最初にブラウザでエラーなく開ける「4ファイルの器」を確定させることで、以降の全タスクで毎回リロード確認できる土台を作ります。",
+        keyPoint: "この時点ではまだギャラリー（catalog.js）とは繋がっておらず、直接URL（/works/01-starry-sky-crud/end/index.html）で単体起動します。",
+        zeroDiffNote: "",
+        matrix: ["none", "none", "changed", "changed", "none", "changed"],
+        nodes: {
+          "html-hud": "highlight",
+          "sketch-render": "scaffold",
+          "types-contract": "scaffold",
+          "repo-session": "scaffold",
+          "repo-crud": "scaffold",
+          "repo-memory": "scaffold",
+          "shared-firebase": "active",
+          "start-sync": "scaffold",
+          "start-repo": "scaffold",
+        },
+        edges: {
+          "e-session-hud": { state: "active" },
+        },
+      },
+      {
+        taskNumber: 2,
+        phase: 1,
+        duration: "目安 8分",
+        title: "ギャラリー図鑑に 001 / LAB カードを登録する",
+        files: [
+          "assets/js/artworks/01-starry-sky-crud.js",
+          "assets/js/catalog.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "F5リロード時: ギャラリーから作品画面へいつでも遷移可能",
+        beforeText: "作品フォルダが孤立しており、トップ画面（カード一覧）にニュートの作品カードが表示されない。",
+        afterText: "ギャラリー3画面（index → detail → exhibition）と作品キャンバスが <iframe> 境界越しに疎結合で開通！",
+        flowSteps: [
+          "01-starry-sky-crud.js カード定義",
+          "catalog.js に追加",
+          "index.html (カード一覧)",
+          "detail.html (概要)",
+          "exhibition.html 内の <iframe> に作品を表示",
+        ],
+        whyOrder: "アート実装に入る前に「鑑賞額縁（exhibition.html）」を繋いでおくことで、PC/スマホ表示や Start/End 切替ヘッダーをいつでも確認できます。",
+        keyPoint: "作品側の index.html には「戻るボタン」等のギャラリーUIを1行も混ぜず、すべて exhibition.html の外側額縁に隔離しています。",
+        zeroDiffNote: "",
+        matrix: ["changed", "none", "active", "active", "none", "active"],
+        nodes: {
+          "gallery-catalog": "highlight",
+          "gallery-pages": "highlight",
+          "iframe-bridge": "highlight",
+          "html-hud": "active",
+          "sketch-render": "scaffold",
+          "types-contract": "scaffold",
+          "repo-session": "scaffold",
+          "repo-crud": "scaffold",
+          "repo-memory": "scaffold",
+          "shared-firebase": "active",
+          "start-sync": "scaffold",
+          "start-repo": "scaffold",
+        },
+        edges: {
+          "e-cat-pages": { state: "highlight" },
+          "e-pages-iframe": { state: "highlight" },
+          "e-iframe-end": { state: "highlight" },
+          "e-session-hud": { state: "active" },
+        },
+      },
+      {
+        taskNumber: 3,
+        phase: 2,
+        duration: "目安 6分",
+        title: "p5型補完の追加と Star データ型の定義",
+        files: [
+          "shared/vendor-types.d.ts",
+          "works/01-starry-sky-crud/end/types.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "静的型安全の確立（VS Code 赤波線ゼロで入力補完が効く状態）",
+        beforeText: "どんな形の星オブジェクトを受け渡すか未定義で、長押し描画用の p5 API（arc / millis 等）も型補完されない。",
+        afterText: "描画層（sketch.js）と通信層（repository.js）が共通で守るデータ契約（Star / StarDraft / StarPatch）が確定！",
+        flowSteps: [
+          "vendor-types.d.ts に p5 メソッド追記",
+          "end/types.js に @typedef 定義",
+          "sketch.js と repository.js の双方へ型契約を提供",
+        ],
+        whyOrder: "描画と通信を分離開発する際、先に「境界のデータ型（types.js）」を固めることで、後から Firestore に差し替えてもデータの食い違いが起きません。",
+        keyPoint: "座標はピクセル値ではなく 0.0〜1.0 の正規化値（normalizedX, normalizedY）として型定義し、PC横画面とスマホ縦画面の空間共有を保証します。",
+        zeroDiffNote: "",
+        matrix: ["active", "changed", "active", "active", "none", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "scaffold",
+          "types-contract": "highlight",
+          "repo-session": "scaffold",
+          "repo-crud": "scaffold",
+          "repo-memory": "scaffold",
+          "shared-firebase": "active",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "highlight" },
+        },
+      },
+      {
+        taskNumber: 4,
+        phase: 2,
+        duration: "目安 8分",
+        title: "ローカル配列で動く CRUD 4関数のモックを作る",
+        files: [
+          "works/01-starry-sky-crud/end/repository.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "F5リロード時: メモリ配列 fallbackStars[] の初期シード4星に戻る",
+        beforeText: "repository.js がテンプレートのままで、星データを取得・作成・更新・削除する窓口が存在しない。",
+        afterText: "Repository層の公開5関数（initializeSession + CRUD 4関数）とインメモリ配列 fallbackStars[] が完成！",
+        flowSteps: [
+          "fallbackStars[]（シード4星）を用意",
+          "fetchStars / createStar / updateStar / deleteStar を export",
+          "仮ID（star-timestamp-...）採番でメモリ配列を更新",
+        ],
+        whyOrder: "いきなり Firebase 通信と p5.js 描画を同時に書くとバグの切り分けが困難になります。先にメモリ配列で動く確実なモック通信層を作ります。",
+        keyPoint: "ここで作ったインメモリ CRUD 実装は無駄にならず、Phase 4（Task 12）で視聴者用の start/repository.js としてそのまま活躍します。",
+        zeroDiffNote: "",
+        matrix: ["active", "active", "none", "changed", "none", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "scaffold",
+          "types-contract": "active",
+          "repo-session": "highlight",
+          "repo-crud": "highlight",
+          "repo-memory": "highlight",
+          "shared-firebase": "active",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-crud-memory": { state: "highlight" },
+        },
+      },
+      {
+        taskNumber: 5,
+        phase: 2,
+        duration: "目安 9分",
+        title: "星空と4色パレット・十字フレアの描画を作る",
+        files: [
+          "works/01-starry-sky-crud/end/sketch.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "F5リロード時: fallbackStars[] のシード4星が十字フレアで瞬く",
+        beforeText: "通信層の fetchStars() は用意できたが、sketch.js 側が星データを読み込まず描画ロジックもない。",
+        afterText: "Read → Render パイプライン開通！起動時に fetchStars() で取得した星々が4色パレットと十字光線で夜空に輝く。",
+        flowSteps: [
+          "bootstrapSystem()",
+          "initializeSession() → #system-hud 更新",
+          "fetchStars() → stars[] 格納",
+          "p.draw() で加算合成 (ADD)・十字フレア描画",
+        ],
+        whyOrder: "CRUD のうち最初に「Read（取得して画面に描く）」を通すことで、続く Create / Update / Delete の結果を即座に目で見て確認できるようになります。",
+        keyPoint: "画面短辺 Math.min(p.width, p.height) を基準に光輪・十字フレア長を計算するため、375px 幅のスマホでもデスクトップでも美しい密度を保ちます。",
+        zeroDiffNote: "",
+        matrix: ["active", "active", "changed", "active", "none", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "highlight",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "active",
+          "repo-memory": "active",
+          "shared-firebase": "active",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "highlight" },
+          "e-render-fetch": { state: "highlight" },
+          "e-crud-memory": { state: "highlight", label: "シード星読取" },
+        },
+      },
+      {
+        taskNumber: 6,
+        phase: 2,
+        duration: "目安 8分",
+        title: "タップで「星の創造（Create）」と「進化（Update）」を動かす",
+        files: [
+          "works/01-starry-sky-crud/end/sketch.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "F5リロード時: タップで増やした星・変えた色はリロードで元に戻る（メモリ動作）",
+        beforeText: "シード星を眺めるだけの静的な夜空で、ユーザーのタップ操作に対する入力ハンドラがない。",
+        afterText: "空白タップ → createStar()、既存星の短タップ（500ms未満）→ updateStar() の双方向データ更新ループが開通！",
+        flowSteps: [
+          "mousePressed でヒット判定＆時刻記録",
+          "mouseReleased（空白）→ createStar(draft) → 採番ID付きStarを stars[] へ追加",
+          "mouseReleased（星・500ms未満）→ 4色×3等級を進め updateStar(id, patch)",
+        ],
+        whyOrder: "createStar の戻り値から「採番された id」を受け取って stars[] に保持するからこそ、直後の短タップで特定の星を id 指定で updateStar できます。",
+        keyPoint: "「なぜ座標ではなくドキュメントIDで対象を指定するのか？」というDB設計の最重要概念が、この Create → Update 連携で体感できます。",
+        zeroDiffNote: "",
+        matrix: ["active", "active", "changed", "active", "none", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "highlight",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "active",
+          "repo-memory": "active",
+          "shared-firebase": "active",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "highlight" },
+          "e-crud-memory": { state: "highlight", label: "追加・更新" },
+        },
+      },
+      {
+        taskNumber: 7,
+        phase: 2,
+        duration: "目安 7分",
+        title: "長押しチャージと「流れ星削除（Delete）」演出を作る",
+        files: [
+          "works/01-starry-sky-crud/end/sketch.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "F5リロード時: 流れ星で消した星もリロードすると復活する（次回からクラウド化！）",
+        beforeText: "星を増やす・育てることはできるが、不要な星を夜空から還す（Delete）手段がない。",
+        afterText: "0.5秒ホールドでチャージリングが満ち、流れ星エフェクトと共に deleteStar(id) が走る全CRUD体験が完成！",
+        flowSteps: [
+          "p.draw() で押下経過時間を監視＆ p.arc チャージ描画",
+          "500ms 到達で stars[] から除外",
+          "shootingStars[] で流れ星軌跡を再生",
+          "deleteStar(id) でデータ削除",
+        ],
+        whyOrder: "ここまでで p5.js 描画・入力層（sketch.js）と型定義（types.js）が100%完成します。以降のタスクでは sketch.js を1文字も触りません！",
+        keyPoint: "ボタンUIを置かず「空白タップ＝Create / 星短タップ＝Update / 星長押し＝Delete」に振り分けたことで、スマホ指1本で全CRUDが完結します。",
+        zeroDiffNote: "🎉 この Task 7 完了時点で sketch.js と types.js は最終完成形に到達！Task 8〜11 では1行も変更しません。",
+        matrix: ["active", "active", "changed", "active", "none", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "highlight",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "active",
+          "repo-memory": "active",
+          "shared-firebase": "active",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "active" },
+          "e-hold-delete": { state: "highlight" },
+          "e-crud-memory": { state: "highlight", label: "全CRUD完結" },
+        },
+      },
+      {
+        taskNumber: 8,
+        phase: 3,
+        duration: "目安 7分",
+        title: "initializeSession に匿名認証を接続する",
+        files: [
+          "works/01-starry-sky-crud/end/repository.js",
+        ],
+        persistenceKind: "memory",
+        persistenceText: "認証UID確立！（星データ自体は次の Task 9 で Firestore へ切り替わります）",
+        beforeText: "repository.js が完全にブラウザ内完結しており、Firebase プロジェクトとの通信セッションがない。",
+        afterText: "isFirebaseConfigured() 分岐により、設定時は Firebase Auth 匿名認証で UID を取得し #system-hud に接続状態を表示！",
+        flowSteps: [
+          "isFirebaseConfigured() 判定",
+          "未設定時: fallback モード維持",
+          "設定時: getFirebaseClients() → signInAnonymously(auth)",
+          "発行された UID を #system-hud に表示",
+        ],
+        whyOrder: "Firestore に書き込みを行う前に「誰からのアクセスか（認証セッション）」を確立しておくことで、Task 11 の認可ルール（request.auth != null）へスムーズに繋がります。",
+        keyPoint: "未設定環境でもクラッシュしないよう fallback 分岐を残すことで、APIキー未設定のクローン直後でも安全にプレビュー動作します。",
+        zeroDiffNote: "✨ sketch.js の変更行数: 0行！initializeSession() の戻り値型を守っているため、画面側は変更不要でHUD表示が切り替わります。",
+        matrix: ["active", "active", "untouched", "changed", "changed", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "active",
+          "types-contract": "active",
+          "repo-session": "highlight",
+          "repo-crud": "active",
+          "repo-memory": "active",
+          "shared-firebase": "highlight",
+          "firebase-auth": "highlight",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "highlight" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "active" },
+          "e-hold-delete": { state: "active" },
+          "e-crud-memory": { state: "active" },
+          "e-repo-shared": { state: "highlight" },
+          "e-session-auth": { state: "highlight" },
+        },
+      },
+      {
+        taskNumber: 9,
+        phase: 3,
+        duration: "目安 8分",
+        title: "Firestore の addDoc（Create）と getDocs（Read）を繋ぐ",
+        files: [
+          "works/01-starry-sky-crud/end/repository.js",
+        ],
+        persistenceKind: "partial-cloud",
+        persistenceText: "F5リロード時: 作った星が消えずにクラウドから再現される！（Create & Read 永続化）",
+        beforeText: "星を作ってもインメモリ配列（fallbackStars[]）にしか入らず、ページを再読み込みすると消えてしまう。",
+        afterText: "createStar が addDoc へ、fetchStars が getDocs へ接続！クラウド採番された docRef.id で星空が永続化される。",
+        flowSteps: [
+          "buildWorkCollectionPath('01-starry-sky-crud', 'stars')",
+          "createStar → addDoc (+ serverTimestamp) → docRef.id 返却",
+          "F5リロード → fetchStars → getDocs(orderBy, limit(120))",
+          "parseStarDocument で型検証して描画",
+        ],
+        whyOrder: "「作って（addDoc）→ リロードして読む（getDocs）」のペアを同時に繋ぐことで、データベース永続化の感動をその場で確認できます。",
+        keyPoint: "Firestoreから取得した生データはそのまま信用せず、parseStarDocument 型ガード関数を通すことで万が一の不正データ混入時も描画クラッシュを防ぎます。",
+        zeroDiffNote: "✨ sketch.js の変更行数: 0行！保存先がメモリ配列から Cloud Firestore に変わっても描画コードは無修正のまま動きます。",
+        matrix: ["active", "active", "untouched", "changed", "changed", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "active",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "highlight",
+          "repo-memory": "standby",
+          "shared-firebase": "active",
+          "firebase-auth": "active",
+          "firestore-db": "highlight",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "highlight" },
+          "e-input-crud": { state: "highlight", label: "createStar" },
+          "e-hold-delete": { state: "active" },
+          "e-crud-memory": { state: "standby", label: "未設定時のみ" },
+          "e-repo-shared": { state: "active" },
+          "e-session-auth": { state: "active" },
+          "e-crud-db-direct": { state: "highlight", label: "addDoc / getDocs" },
+        },
+      },
+      {
+        taskNumber: 10,
+        phase: 3,
+        duration: "目安 8分",
+        title: "Firestore の updateDoc（Update）と deleteDoc（Delete）を繋ぐ",
+        files: [
+          "works/01-starry-sky-crud/end/repository.js",
+        ],
+        persistenceKind: "full-cloud",
+        persistenceText: "F5リロード時: 星の作成・色と輝きの変化・流れ星削除のすべてがクラウドに永続化！",
+        beforeText: "星の生成・読取はクラウド化されたが、色変更と長押し削除はまだローカル配列側の処理のまま。",
+        afterText: "doc(..., starId) 参照で updateDoc と deleteDoc が開通し、全 CRUD 4操作が Cloud Firestore 上で完結！",
+        flowSteps: [
+          "doc(db, 'works', '01-starry-sky-crud', 'stars', starId)",
+          "短タップ → updateDoc({ colorIndex, magnitude, updatedAt })",
+          "長押し → deleteDoc(starRef)",
+          "Firestore 管理画面でもリアルタイムにドキュメント変化を確認",
+        ],
+        whyOrder: "Task 9 で docRef.id が各 Star オブジェクトに格納されているため、ここでピンポイントに1つの星ドキュメントだけを更新・削除できます。",
+        keyPoint: "updateDoc では座標や createdAt を送らず変更対象の3フィールド（colorIndex, magnitude, updatedAt）のみを部分更新（Patch）します。",
+        zeroDiffNote: "✨ sketch.js の変更行数: 0行！Repository パターンによる責務分離の威力がここで完全に証明されます。",
+        matrix: ["active", "active", "untouched", "changed", "changed", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "active",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "highlight",
+          "repo-memory": "standby",
+          "shared-firebase": "active",
+          "firebase-auth": "active",
+          "firestore-db": "highlight",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "highlight", label: "create / update" },
+          "e-hold-delete": { state: "highlight" },
+          "e-crud-memory": { state: "standby", label: "未設定時のみ" },
+          "e-repo-shared": { state: "active" },
+          "e-session-auth": { state: "active" },
+          "e-crud-db-direct": { state: "highlight", label: "全CRUD (4 API)" },
+        },
+      },
+      {
+        taskNumber: 11,
+        phase: 3,
+        duration: "目安 8分",
+        title: "firestore.rules に第1作のスキーマ認可ルールを追加する",
+        files: [
+          "firestore.rules",
+        ],
+        persistenceKind: "full-cloud",
+        persistenceText: "全CRUD永続化 ＋ サーバー側スキーマ防衛（範囲外数値・座標改ざん・未認証書込を遮断）",
+        beforeText: "クライアント通信は動くが、ブラウザの DevTools 等から不正なフィールドや範囲外の値を直接書き込まれるリスクがある（またはデフォルト拒否で弾かれる）。",
+        afterText: "Repository と Firestore DB の間に Security Rules 防衛壁が挿入され、正規スキーマの通信のみが通過する堅牢な構成が完成！",
+        flowSteps: [
+          "repository.js から CRUD 要求",
+          "firestore.rules が request.auth とスキーマを検査",
+          "isValidStarCreate: 6必須キー・座標0..1・色0..3・等級1..3・serverTimestamp検証",
+          "isValidStarUpdate: 座標と createdAt の不変（resource.data一致）を強制",
+        ],
+        whyOrder: "クライアント側の送信データ構造（Task 9〜10）が確定した直後にルールを書くことで、フィールド過不足による権限エラーを確実に防げます。",
+        keyPoint: "フロントエンドのバリデーションは突破される前提で、必ずサーバー側（firestore.rules）で型・範囲・不変条件を強制するのが Web システムの鉄則です。",
+        zeroDiffNote: "✨ クライアントコード（sketch.js / repository.js）の変更行数: 0行！インフラ側の認可レイヤーのみを強化しています。",
+        matrix: ["active", "active", "untouched", "untouched", "changed", "none"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "active",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "active",
+          "repo-memory": "standby",
+          "shared-firebase": "active",
+          "firebase-auth": "active",
+          "firestore-rules": "highlight",
+          "firestore-db": "active",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "active" },
+          "e-hold-delete": { state: "active" },
+          "e-crud-memory": { state: "standby", label: "未設定時のみ" },
+          "e-repo-shared": { state: "active" },
+          "e-session-auth": { state: "active" },
+          "e-crud-rules": { state: "highlight" },
+          "e-rules-db": { state: "highlight" },
+        },
+      },
+      {
+        taskNumber: 12,
+        phase: 4,
+        duration: "目安 8分",
+        title: "完成した end/ から視聴者用の start/ を切り出す",
+        files: [
+          "works/01-starry-sky-crud/start/types.js",
+          "works/01-starry-sky-crud/start/sketch.js",
+          "works/01-starry-sky-crud/start/index.html",
+          "works/01-starry-sky-crud/start/repository.js",
+        ],
+        persistenceKind: "dual",
+        persistenceText: "Start（リロードで消えるメモリ）⇄ End（クラウド永続化）をワンクリックで比較体験！",
+        beforeText: "end/（完成版）は完成したが、ハンズオン視聴者が手を動かすための start/ が未整備の状態。",
+        afterText: "end/ の sketch.js・types.js を start/ へ1バイト完全一致コピーし、start/repository.js のみを TODO 付きメモリ版に分離！",
+        flowSteps: [
+          "end/sketch.js, types.js → start/ へ丸ごとコピー（差分0バイト）",
+          "start/repository.js に fallbackStars[] + TODO(Step 1〜4) を配置",
+          "exhibition.html ヘッダーの Start / End スイッチで両者を切替比較",
+        ],
+        whyOrder: "先に start/ を作ると開発中の微調整で start と end の描画コードが乖離してしまいます。「完成した end から逆算で剥がす」ことで完全一致を保証します。",
+        keyPoint: "視聴者は p5.js の複雑な座標計算に悩まされることなく、repository.js の CRUD 通信実装だけに100%集中できる教材構造になります。",
+        zeroDiffNote: "🔁 start/sketch.js === end/sketch.js ＆ start/types.js === end/types.js（1バイトの差分もなし）",
+        matrix: ["active", "active", "untouched", "untouched", "active", "changed"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "highlight",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "active",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "active",
+          "repo-memory": "standby",
+          "shared-firebase": "active",
+          "firebase-auth": "active",
+          "firestore-rules": "active",
+          "firestore-db": "active",
+          "start-sync": "highlight",
+          "start-repo": "highlight",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "highlight", label: "Start/End切替" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "active" },
+          "e-hold-delete": { state: "active" },
+          "e-crud-memory": { state: "standby", label: "未設定時のみ" },
+          "e-repo-shared": { state: "active" },
+          "e-session-auth": { state: "active" },
+          "e-crud-rules": { state: "active" },
+          "e-rules-db": { state: "active" },
+          "e-end-to-start": { state: "highlight" },
+          "e-start-pair": { state: "highlight" },
+        },
+      },
+      {
+        taskNumber: 13,
+        phase: 4,
+        duration: "目安 3分",
+        title: "自動検証スクリプトで全チェックを通す",
+        files: [
+          ".agents/skills/create-artwork/scripts/verify-project.py",
+        ],
+        persistenceKind: "dual",
+        persistenceText: "✅ 全5項目のアーキテクチャ制約をクリアし、公開・動画収録可能な完成状態！",
+        beforeText: "手動確認のみでは、リンクの大文字小文字不一致や start/end 間の1文字のズレを見落とす可能性がある。",
+        afterText: "verify-project.py が全JS構文・相対パス・スマホ必須設定・カタログ登録・Start/End完全一致を機械的に検証・ロック！",
+        flowSteps: [
+          "python3 .agents/skills/create-artwork/scripts/verify-project.py 実行",
+          "node --check 全JS構文検査",
+          "100dvh / touch-action: none / windowResized 検査",
+          "start と end の sketch.js・types.js 完全一致証明 → ✅ 検証完了",
+        ],
+        whyOrder: "最後の仕上げとしてアーキテクチャ上の約束事を自動スクリプトで検査し、本番 Firebase Hosting（Linux環境）での404や表示崩れを未然に根絶します。",
+        keyPoint: "今後リファクタリングや第2作以降の追加を行った際も、この1コマンドで第1作の整合性が壊れていないことをいつでも1秒で再保証できます。",
+        zeroDiffNote: "🏆 全13ステップ完了！ギャラリー・描画・通信・認証・DB・認可ルール・教材パッケージの全層が統合されました。",
+        matrix: ["active", "active", "active", "active", "active", "changed"],
+        nodes: {
+          "gallery-catalog": "active",
+          "gallery-pages": "active",
+          "iframe-bridge": "active",
+          "html-hud": "active",
+          "sketch-render": "active",
+          "sketch-input": "active",
+          "sketch-hold": "active",
+          "types-contract": "active",
+          "repo-session": "active",
+          "repo-crud": "active",
+          "repo-memory": "standby",
+          "shared-firebase": "active",
+          "firebase-auth": "active",
+          "firestore-rules": "active",
+          "firestore-db": "active",
+          "start-sync": "active",
+          "start-repo": "active",
+          "verify-script": "highlight",
+        },
+        edges: {
+          "e-cat-pages": { state: "active" },
+          "e-pages-iframe": { state: "active" },
+          "e-iframe-end": { state: "active" },
+          "e-types-sketch": { state: "active" },
+          "e-session-hud": { state: "active" },
+          "e-render-fetch": { state: "active" },
+          "e-input-crud": { state: "active" },
+          "e-hold-delete": { state: "active" },
+          "e-crud-memory": { state: "standby", label: "未設定時のみ" },
+          "e-repo-shared": { state: "active" },
+          "e-session-auth": { state: "active" },
+          "e-crud-rules": { state: "active" },
+          "e-rules-db": { state: "active" },
+          "e-end-to-start": { state: "active" },
+          "e-start-pair": { state: "active" },
+          "e-verify-all": { state: "highlight" },
+        },
+      },
+    ];
+
+    /**
+     * HTMLエスケープ処理（SVGテキストおよびDOM文字列の安全な埋め込み用）
+     * @param {string} rawText
+     * @returns {string}
+     */
+    function escapeHtml(rawText) {
+      return rawText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    /**
+     * 指定されたタスクのノード・エッジ状態から、単体完結した SVG アーキテクチャ図を生成する。
+     * 複数SVGを1ページ内に並べた際も <defs> の marker ID が衝突しないよう、タスク番号サフィックスを付与する。
+     *
+     * @param {typeof TASKS[number]} task
+     * @param {string} idSuffix
+     * @returns {string}
+     */
+    function buildArchitectureSvg(task, idSuffix) {
+      const markerActiveId = `arrow-active-${idSuffix}`;
+      const markerHighlightId = `arrow-highlight-${idSuffix}`;
+      const markerStandbyId = `arrow-standby-${idSuffix}`;
+
+      const swimlanesSvg = `
+        <!-- 上段スイムレーン: ギャラリー層 -->
+        <rect x="18" y="14" width="1164" height="84" rx="12" fill="#f4f8fd" stroke="#cfe0f5" stroke-width="1.2" />
+        <text x="34" y="50" font-size="12" font-weight="800" fill="#005bb0">🏛️ ギャラリー額縁</text>
+        <text x="34" y="68" font-size="12" font-weight="600" fill="#6c829e">(外枠3画面)</text>
+
+        <!-- 中段左列: 描画・入力層 -->
+        <rect x="18" y="124" width="324" height="362" rx="12" fill="#f8fbff" stroke="#cfe0f5" stroke-width="1.2" />
+        <text x="30" y="147" font-size="13" font-weight="800" fill="#005bb0">🎨 描画・入力層 (index.html + sketch.js)</text>
+
+        <!-- 中段中央列: 型契約 & Repository通信層 -->
+        <rect x="442" y="124" width="320" height="362" rx="12" fill="#f8fbff" stroke="#cfe0f5" stroke-width="1.2" />
+        <text x="454" y="147" font-size="13" font-weight="800" fill="#005bb0">🔌 型契約 &amp; 通信層 (types + repository)</text>
+
+        <!-- 中段右列: Firebase & 認可ルール層 -->
+        <rect x="862" y="124" width="320" height="362" rx="12" fill="#f8fbff" stroke="#cfe0f5" stroke-width="1.2" />
+        <text x="874" y="147" font-size="13" font-weight="800" fill="#005bb0">☁️ Firebase 基盤・Cloud DB・認可層</text>
+
+        <!-- 下段スイムレーン: 教材切り出し & 自動検証層 -->
+        <rect x="18" y="512" width="1164" height="88" rx="12" fill="#f5f3ff" stroke="#dcd5fe" stroke-width="1.2" />
+        <text x="34" y="550" font-size="12" font-weight="800" fill="#5f3dc4">🎓 教材 start/</text>
+        <text x="34" y="568" font-size="12" font-weight="600" fill="#6c829e">&amp; 品質検証</text>
+      `;
+
+      const edgesSvg = ARCHITECTURE_EDGES.map((edge) => {
+        const edgeConfig = task.edges[edge.id];
+        if (!edgeConfig) {
+          return "";
+        }
+
+        const edgeState = edgeConfig.state;
+        const labelText = edgeConfig.label || edge.label;
+
+        let strokeColor = "#0077da";
+        let strokeWidth = "2";
+        let dashAttr = "";
+        let animClass = "";
+        let markerEnd = `url(#${markerActiveId})`;
+        let badgeBg = "#eef7ff";
+        let badgeBorder = "#90c2f9";
+        let badgeText = "#005bb0";
+
+        if (edgeState === "highlight") {
+          strokeColor = "#e67700";
+          strokeWidth = "2.8";
+          animClass = "edge-animated";
+          markerEnd = `url(#${markerHighlightId})`;
+          badgeBg = "#fff8db";
+          badgeBorder = "#f59f00";
+          badgeText = "#9c4200";
+        } else if (edgeState === "standby") {
+          strokeColor = "#94a3b8";
+          strokeWidth = "1.6";
+          dashAttr = 'stroke-dasharray="3 4"';
+          markerEnd = `url(#${markerStandbyId})`;
+          badgeBg = "#f8fafc";
+          badgeBorder = "#cbd5e1";
+          badgeText = "#64748b";
+        }
+
+        const pillWidth = Math.max(66, labelText.length * 7.5 + 18);
+
+        return `
+          <g>
+            <path d="${edge.path}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${dashAttr} class="${animClass}" marker-end="${markerEnd}" />
+            <rect x="${edge.lx - pillWidth / 2}" y="${edge.ly - 11}" width="${pillWidth}" height="18" rx="9" fill="${badgeBg}" stroke="${badgeBorder}" stroke-width="1" />
+            <text x="${edge.lx}" y="${edge.ly + 2}" text-anchor="middle" font-size="12" font-weight="700" fill="${badgeText}">${escapeHtml(labelText)}</text>
+          </g>
+        `;
+      }).join("");
+
+      const nodesSvg = ARCHITECTURE_NODES.map((node) => {
+        const state = task.nodes[node.id] || "pending";
+
+        let rectFill = "#f8fafc";
+        let rectStroke = "#cbd5e1";
+        let strokeWidth = "1.4";
+        let strokeDash = 'stroke-dasharray="5 4"';
+        let groupOpacity = "0.44";
+        let titleColor = "#64748b";
+        let subColor = "#94a3b8";
+        let statusBadge = "";
+
+        if (state === "scaffold") {
+          rectFill = "#f1f5f9";
+          rectStroke = "#64748b";
+          strokeWidth = "1.6";
+          strokeDash = 'stroke-dasharray="6 3"';
+          groupOpacity = "0.86";
+          titleColor = "#334155";
+          subColor = "#64748b";
+          statusBadge = `
+            <rect x="${node.x + node.w - 66}" y="${node.y - 9}" width="60" height="18" rx="9" fill="#64748b" />
+            <text x="${node.x + node.w - 36}" y="${node.y + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">雛形</text>
+          `;
+        } else if (state === "active") {
+          rectFill = "#ffffff";
+          rectStroke = "#0077da";
+          strokeWidth = "2";
+          strokeDash = "";
+          groupOpacity = "1";
+          titleColor = "#10243e";
+          subColor = "#47607e";
+        } else if (state === "standby") {
+          rectFill = "#f8fafc";
+          rectStroke = "#94a3b8";
+          strokeWidth = "1.6";
+          strokeDash = 'stroke-dasharray="3 3"';
+          groupOpacity = "0.78";
+          titleColor = "#475569";
+          subColor = "#64748b";
+          statusBadge = `
+            <rect x="${node.x + node.w - 78}" y="${node.y - 9}" width="72" height="18" rx="9" fill="#94a3b8" />
+            <text x="${node.x + node.w - 42}" y="${node.y + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">待機(予備)</text>
+          `;
+        } else if (state === "highlight") {
+          rectFill = "#fffbeb";
+          rectStroke = "#f59f00";
+          strokeWidth = "2.8";
+          strokeDash = "";
+          groupOpacity = "1";
+          titleColor = "#10243e";
+          subColor = "#7c4a03";
+          statusBadge = `
+            <rect x="${node.x - 4}" y="${node.y - 4}" width="${node.w + 8}" height="${node.h + 8}" rx="12" fill="none" stroke="#ffd43b" stroke-width="3" opacity="0.65" />
+            <rect x="${node.x + node.w - 86}" y="${node.y - 10}" width="80" height="20" rx="10" fill="#f59f00" />
+            <text x="${node.x + node.w - 46}" y="${node.y + 4}" text-anchor="middle" font-size="12" font-weight="800" fill="#ffffff">★ 更新箇所</text>
+          `;
+        }
+
+        const titleY = node.y + Math.round(node.h * 0.43);
+        const subY = node.y + Math.round(node.h * 0.76);
+
+        return `
+          <g opacity="${groupOpacity}">
+            <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="9" fill="${rectFill}" stroke="${rectStroke}" stroke-width="${strokeWidth}" ${strokeDash} />
+            ${statusBadge}
+            <text x="${node.x + 12}" y="${titleY}" font-size="13" font-weight="800" fill="${titleColor}">${escapeHtml(node.title)}</text>
+            <text x="${node.x + 12}" y="${subY}" font-size="12" font-weight="500" fill="${subColor}">${escapeHtml(node.subtitle)}</text>
+          </g>
+        `;
+      }).join("");
+
+      return `
+        <svg class="arch-svg" viewBox="0 0 1200 612" role="img" aria-label="Task ${task.taskNumber} のシステムアーキテクチャ図">
+          <defs>
+            <marker id="${markerActiveId}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#0077da" />
+            </marker>
+            <marker id="${markerHighlightId}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#e67700" />
+            </marker>
+            <marker id="${markerStandbyId}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
+            </marker>
+          </defs>
+          ${swimlanesSvg}
+          ${nodesSvg}
+          ${edgesSvg}
+        </svg>
+      `;
+    }
+
+    /**
+     * 1つのタスク分のステージカードHTML（図解＋Before/After＋データフロー＋設計意図）を生成する。
+     *
+     * @param {typeof TASKS[number]} task
+     * @param {boolean} includeNavControls インタラクティブ操作ボタンを含めるか
+     * @returns {string}
+     */
+    function buildTaskStageHtml(task, includeNavControls) {
+      const idSuffix = includeNavControls ? "interactive" : `all-${task.taskNumber}`;
+      const svgMarkup = buildArchitectureSvg(task, idSuffix);
+
+      const flowHtml = task.flowSteps
+        .map((step, index) => {
+          const prefix = index > 0 ? '<span class="flow-sep">→</span>' : "";
+          return `${prefix}<span class="flow-chip">${index + 1}. ${escapeHtml(step)}</span>`;
+        })
+        .join("");
+
+      const filesHtml = task.files
+        .map((filePath) => `<span class="file-tag">${escapeHtml(filePath)}</span>`)
+        .join("");
+
+      const zeroDiffMarkup = task.zeroDiffNote
+        ? `<div class="zero-diff-callout">${escapeHtml(task.zeroDiffNote)}</div>`
+        : "";
+
+      const navMarkup = includeNavControls
+        ? `
+          <div class="nav-controls">
+            <span class="keyboard-hint">← → キー対応</span>
+            <button type="button" id="btn-prev-task" class="nav-btn" ${task.taskNumber === 1 ? "disabled" : ""}>
+              ◀ 前のTask
+            </button>
+            <button type="button" id="btn-next-task" class="nav-btn nav-btn--primary" ${task.taskNumber === TASKS.length ? "disabled" : ""}>
+              次のTask ▶
+            </button>
+          </div>
+        `
+        : `<span class="task-duration-badge">Phase ${task.phase} / ${escapeHtml(task.duration)}</span>`;
+
+      return `
+        <div class="stage-topbar">
+          <div class="stage-task-heading">
+            <span class="task-number-badge">Task ${task.taskNumber} / 13</span>
+            ${includeNavControls ? `<span class="task-duration-badge">Phase ${task.phase} ・ ${escapeHtml(task.duration)}</span>` : ""}
+            <h2 class="stage-task-title">${escapeHtml(task.title)}</h2>
+          </div>
+          ${navMarkup}
+        </div>
+
+        <div class="legend-bar">
+          <div class="legend-items">
+            <span class="legend-item"><span class="legend-swatch legend-swatch--highlight"></span>このTaskで新規・更新</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--active"></span>構築済み（稼働中）</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--scaffold"></span>テンプレート雛形</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--standby"></span>フォールバック待機</span>
+            <span class="legend-item"><span class="legend-swatch legend-swatch--pending"></span>未構築</span>
+          </div>
+          <span class="persistence-pill" data-kind="${task.persistenceKind}">
+            💾 ${escapeHtml(task.persistenceText)}
+          </span>
+        </div>
+
+        <div class="diagram-viewport">
+          ${svgMarkup}
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-panel">
+            <h3 class="detail-panel__title">🔄 アーキテクチャの変化（Before → After）とデータフロー</h3>
+            ${zeroDiffMarkup}
+            <div class="before-after-box">
+              <div class="ba-card ba-card--before">
+                <span class="ba-card__label">BEFORE（前の状態）</span>
+                ${escapeHtml(task.beforeText)}
+              </div>
+              <div class="ba-arrow" aria-hidden="true">➔</div>
+              <div class="ba-card ba-card--after">
+                <span class="ba-card__label">AFTER（このTask完了時）</span>
+                ${escapeHtml(task.afterText)}
+              </div>
+            </div>
+            <div>
+              <strong style="font-size: 12px; color: var(--text-secondary);">このステップで動く処理の流れ:</strong>
+              <div class="flow-steps">${flowHtml}</div>
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <h3 class="detail-panel__title">🧭 変更対象ファイルと設計意図</h3>
+            <div class="file-tags">${filesHtml}</div>
+            <ul class="meta-list">
+              <li><strong>なぜこの順番なのか？:</strong> ${escapeHtml(task.whyOrder)}</li>
+              <li><strong>アーキテクチャ上の要点:</strong> ${escapeHtml(task.keyPoint)}</li>
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+
+    let selectedTaskNumber = 1;
+    let currentViewMode = "interactive";
+
+    const phaseGridElement = document.getElementById("phase-grid");
+    const interactiveStageContainer = document.getElementById("interactive-stage-container");
+    const interactiveSection = document.getElementById("interactive-section");
+    const allTasksSection = document.getElementById("all-tasks-section");
+    const matrixTbody = document.getElementById("matrix-tbody");
+    const btnModeInteractive = document.getElementById("btn-mode-interactive");
+    const btnModeAll = document.getElementById("btn-mode-all");
+
+    /**
+     * フェーズ・タスク選択バーを再描画する。
+     * 現在選択中のタスクまでの進捗が視覚的に追えるようにクラスを付与する。
+     */
+    function renderStepper() {
+      const currentTask = TASKS[selectedTaskNumber - 1];
+
+      phaseGridElement.innerHTML = PHASES.map((phase) => {
+        const phaseTasks = TASKS.filter((item) => item.phase === phase.id);
+        const isCurrentPhase = currentTask.phase === phase.id;
+
+        const pillsHtml = phaseTasks
+          .map((item) => {
+            const stateClasses = [
+              "task-pill",
+              item.taskNumber === selectedTaskNumber ? "is-selected" : "",
+              item.taskNumber < selectedTaskNumber ? "is-visited" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+            return `
+              <button type="button" class="${stateClasses}" data-task-num="${item.taskNumber}" title="${escapeHtml(item.title)}">
+                Task ${item.taskNumber}
+              </button>
+            `;
+          })
+          .join("");
+
+        return `
+          <div class="phase-box ${isCurrentPhase ? "is-current-phase" : ""}">
+            <div class="phase-box__header">
+              <span class="phase-box__tag">${escapeHtml(phase.label)}</span>
+              <span class="phase-box__time">${escapeHtml(phase.totalTime)}</span>
+            </div>
+            <div class="phase-box__title">${escapeHtml(phase.title)}</div>
+            <div class="task-pills">${pillsHtml}</div>
+          </div>
+        `;
+      }).join("");
+
+      phaseGridElement.querySelectorAll("[data-task-num]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const targetNumber = Number(button.getAttribute("data-task-num"));
+          selectTask(targetNumber, false);
+        });
+      });
+    }
+
+    /**
+     * インタラクティブ比較ステージを指定タスクで更新する。
+     */
+    function renderInteractiveStage() {
+      const currentTask = TASKS[selectedTaskNumber - 1];
+      interactiveStageContainer.innerHTML = buildTaskStageHtml(currentTask, true);
+
+      const prevButton = document.getElementById("btn-prev-task");
+      const nextButton = document.getElementById("btn-next-task");
+
+      if (prevButton) {
+        prevButton.addEventListener("click", () => {
+          if (selectedTaskNumber > 1) {
+            selectTask(selectedTaskNumber - 1, false);
+          }
+        });
+      }
+
+      if (nextButton) {
+        nextButton.addEventListener("click", () => {
+          if (selectedTaskNumber < TASKS.length) {
+            selectTask(selectedTaskNumber + 1, false);
+          }
+        });
+      }
+    }
+
+    /**
+     * マトリクス表のセル状態バッジを生成する。
+     * @param {string} code
+     * @returns {string}
+     */
+    function renderMatrixBadge(code) {
+      if (code === "changed") {
+        return '<span class="cell-badge cell-badge--changed">★ 新規・変更</span>';
+      }
+      if (code === "untouched") {
+        return '<span class="cell-badge cell-badge--untouched">無修正で維持</span>';
+      }
+      if (code === "active") {
+        return '<span class="cell-badge cell-badge--active">稼働中</span>';
+      }
+      return '<span class="cell-badge cell-badge--none">―</span>';
+    }
+
+    /**
+     * 下部の 13タスク × 6レイヤー変遷マトリクスを描画する。
+     */
+    function renderMatrix() {
+      const persistenceShortLabels = {
+        memory: "揮発メモリ",
+        "partial-cloud": "Create/Read 永続化",
+        "full-cloud": "全CRUD クラウド永続化",
+        dual: "Start(揮発) ⇄ End(永続)",
+      };
+
+      matrixTbody.innerHTML = TASKS.map((task) => {
+        const isSelected = task.taskNumber === selectedTaskNumber && currentViewMode === "interactive";
+        const cells = task.matrix.map((code) => `<td>${renderMatrixBadge(code)}</td>`).join("");
+
+        return `
+          <tr class="matrix-row ${isSelected ? "is-selected-row" : ""}" data-matrix-task="${task.taskNumber}">
+            <td class="task-cell">Task ${task.taskNumber}: ${escapeHtml(task.title)}</td>
+            ${cells}
+            <td style="font-weight: 700; color: var(--text-secondary); white-space: nowrap;">
+              ${escapeHtml(persistenceShortLabels[task.persistenceKind])}
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      matrixTbody.querySelectorAll("[data-matrix-task]").forEach((row) => {
+        row.addEventListener("click", () => {
+          const targetNumber = Number(row.getAttribute("data-matrix-task"));
+          if (currentViewMode === "all") {
+            const cardEl = document.getElementById(`all-task-card-${targetNumber}`);
+            if (cardEl) {
+              cardEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+            return;
+          }
+          selectTask(targetNumber, true);
+        });
+      });
+    }
+
+    /**
+     * 全13タスク一括展開モードの中身を初回切替時に構築する。
+     */
+    let isAllTasksRendered = false;
+    function ensureAllTasksRendered() {
+      if (isAllTasksRendered) {
+        return;
+      }
+
+      const chunks = [];
+      let lastPhase = 0;
+
+      for (const task of TASKS) {
+        if (task.phase !== lastPhase) {
+          const phaseMeta = PHASES.find((p) => p.id === task.phase);
+          if (phaseMeta) {
+            chunks.push(`
+              <div class="phase-divider">
+                <span>${escapeHtml(phaseMeta.label)}: ${escapeHtml(phaseMeta.title)}</span>
+                <span style="font-size: 13px; opacity: 0.9;">${escapeHtml(phaseMeta.totalTime)}</span>
+              </div>
+            `);
+          }
+          lastPhase = task.phase;
+        }
+
+        chunks.push(`
+          <article id="all-task-card-${task.taskNumber}" class="stage-card">
+            ${buildTaskStageHtml(task, false)}
+          </article>
+        `);
+      }
+
+      allTasksSection.innerHTML = chunks.join("");
+      isAllTasksRendered = true;
+    }
+
+    /**
+     * タスクを選択して画面全体を更新する。
+     * @param {number} taskNumber
+     * @param {boolean} scrollToStage
+     */
+    function selectTask(taskNumber, scrollToStage) {
+      selectedTaskNumber = Math.min(TASKS.length, Math.max(1, taskNumber));
+      renderStepper();
+      renderInteractiveStage();
+      renderMatrix();
+
+      if (scrollToStage) {
+        interactiveSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    /**
+     * 表示モード（ステップ比較 / 全13タスク一括展開）を切り替える。
+     * @param {"interactive" | "all"} mode
+     */
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      const isInteractive = mode === "interactive";
+
+      btnModeInteractive.classList.toggle("is-active", isInteractive);
+      btnModeInteractive.setAttribute("aria-selected", String(isInteractive));
+      btnModeAll.classList.toggle("is-active", !isInteractive);
+      btnModeAll.setAttribute("aria-selected", String(!isInteractive));
+
+      interactiveSection.classList.toggle("is-hidden", !isInteractive);
+      allTasksSection.classList.toggle("is-visible", !isInteractive);
+
+      if (!isInteractive) {
+        ensureAllTasksRendered();
+      }
+      renderMatrix();
+    }
+
+    btnModeInteractive.addEventListener("click", () => setViewMode("interactive"));
+    btnModeAll.addEventListener("click", () => setViewMode("all"));
+
+    // キーボードの左右矢印キーで軽快にタスク前後に移動できるようにする
+    window.addEventListener("keydown", (event) => {
+      if (currentViewMode !== "interactive") {
+        return;
+      }
+      if (event.key === "ArrowLeft" && selectedTaskNumber > 1) {
+        selectTask(selectedTaskNumber - 1, false);
+      } else if (event.key === "ArrowRight" && selectedTaskNumber < TASKS.length) {
+        selectTask(selectedTaskNumber + 1, false);
+      }
+    });
+
+    // 初期描画
+    selectTask(1, false);
+  </script>
+</body>
+</html>

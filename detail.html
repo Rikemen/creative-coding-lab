@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>作品概要 | Rikemen Creative Coding Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/css/gallery.css" />
+  </head>
+  <body>
+    <nav class="site-navbar" aria-label="グローバルナビゲーション">
+      <div class="site-navbar__inner">
+        <a href="./index.html" class="site-brand">
+          <span class="site-brand__pill">RIKEMEN</span>
+          <span>Creative Coding Lab</span>
+        </a>
+        <div class="site-navbar__links">
+          <a id="nav-card-list-link" href="./index.html" class="site-navbar__link">← カード一覧へ戻る</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="catalog-container">
+      <nav class="breadcrumb" aria-label="パンくずリスト">
+        <a id="breadcrumb-home-link" href="./index.html">作品カード検索</a>
+        <span aria-hidden="true">&gt;</span>
+        <span id="breadcrumb-current-title">作品概要</span>
+      </nav>
+
+      <div class="detail-layout">
+        <!-- 左カラム：拡大された作品トレーディングカード -->
+        <div id="detail-card-slot" class="detail-card-column"></div>
+
+        <!-- 右カラム：作品概要・「作品を見る」導線・キャラクター解説 -->
+        <div class="detail-info-column">
+          <header class="detail-header-box">
+            <div class="detail-meta-row">
+              <span id="detail-card-no" class="detail-card-no"></span>
+              <span id="detail-category-label" class="detail-category-badge"></span>
+            </div>
+            <h1 id="detail-title" class="detail-title"></h1>
+            <p id="detail-subtitle" class="detail-subtitle"></p>
+          </header>
+
+          <div class="detail-cta-panel">
+            <a id="btn-launch-artwork" href="./exhibition.html" class="primary-launch-btn">
+              <span>作品を見る</span>
+              <span aria-hidden="true">▶</span>
+            </a>
+
+            <a id="btn-launch-start" href="./exhibition.html" class="secondary-launch-btn" hidden>
+              <span>Start（ハンズオン用）を見る</span>
+            </a>
+
+            <a
+              id="btn-youtube-link"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="secondary-launch-btn"
+              hidden
+            >
+              <span>YouTube解説動画を開く</span>
+            </a>
+          </div>
+
+          <section class="navigator-callout" aria-label="キャラクターナビゲート">
+            <div class="navigator-callout__avatar">
+              <img id="navigator-avatar" src="./assets/images/rikemen-rikejo/01_Feru.png" alt="" />
+            </div>
+            <div>
+              <p id="navigator-name" class="navigator-callout__name"></p>
+              <p id="navigator-comment" class="navigator-callout__text"></p>
+            </div>
+          </section>
+
+          <section class="detail-section-card">
+            <h2 class="detail-section-card__heading">作品概要・アート体験</h2>
+            <p id="detail-art-concept" class="detail-section-card__body"></p>
+          </section>
+
+          <section class="detail-section-card">
+            <h2 class="detail-section-card__heading">裏側で動いているシステムの仕組み</h2>
+            <p id="detail-system-arch" class="detail-section-card__body"></p>
+            <ul id="detail-keywords" class="keyword-pills"></ul>
+          </section>
+
+          <section id="detail-local-guide" class="detail-section-card" hidden>
+            <h2 class="detail-section-card__heading">ハンズオン学習ガイド（ローカル環境）</h2>
+            <p class="detail-section-card__body">
+              YouTube動画を見ながら手を動かす際は、以下の開始用ファイルをエディタで開いて実装を進めてください。完成見本は同じ階層にある
+              <code>end/repository.js</code> でいつでも確認できます。
+            </p>
+            <div id="detail-code-path" class="code-path-banner"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Rikemen &amp; Rikejo Creative Coding Lab — Media Art × Web Architecture</p>
+    </footer>
+
+    <script type="module" src="./assets/js/detail.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,212 @@
+rules_version = '2';
+
+// ===============================================================
+// 想定データモデル（Assumed Data Model）
+// ===============================================================
+//
+// 本セキュリティルールは、1つのFirebaseプロジェクト内で複数のメディアアート作品を
+// 安全に同居させるため、`/works/{workId}/...` の名前空間分離を前提としています。
+// 個人情報（PII）はドキュメント内に一切保持しない設計とすることで、公開ギャラリーとしての閲覧性を確保します。
+//
+// コレクション: /works/_template/particles/{particleId}
+// 用途: 新規作品テンプレートおよびハンズオン教材用のパーティクル共有データ
+// フィールド仕様（すべて必須・作成後の変更不可）:
+//   - normalizedX: int | float (0.0 <= value <= 1.0)
+//       異なる画面解像度・アスペクト比のデバイス間で描画位置を破綻なく共有するため正規化座標を強制
+//   - normalizedY: int | float (0.0 <= value <= 1.0)
+//       異なる画面解像度・アスペクト比のデバイス間で描画位置を破綻なく共有するため正規化座標を強制
+//   - hue: int | float (0 <= value <= 360)
+//       HSB色空間における色相角の妥当性を保証し、描画ロジックの異常動作を防ぐため範囲を制限
+//   - ownerUid: string (1〜128文字, request.auth.uid と完全一致)
+//       作成者のなりすましを防ぎ、本人のみが自分の生成データを削除できるようにするため保持
+//   - createdAt: timestamp (request.time と完全一致)
+//       クライアント端末の時計ズレや悪意ある過去・未来時刻の偽装を防ぎ、正確な時系列順序を担保するため強制
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // 共通ヘルパー関数
+    // ===============================================================
+
+    // 未認証クライアントによる無制限な書き込みスパムを防ぎつつ、
+    // ハンズオン体験者が匿名認証（Anonymous Auth）で手軽に参加できるようにするため認証状態を検証
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 他人のデータの不正削除や権限外操作を防ぐため、認証済みUIDとの一致を検証
+    function isOwner(ownerUid) {
+      return isAuthenticated()
+        && ownerUid is string
+        && ownerUid.size() > 0
+        && ownerUid.size() <= 128
+        && request.auth.uid == ownerUid;
+    }
+
+    // 必須データの欠落によるクライアント側（p5.jsスケッチ）の描画クラッシュを防ぐため検証
+    function hasRequiredFields(documentData, requiredFields) {
+      return documentData.keys().hasAll(requiredFields);
+    }
+
+    // 想定外の巨大データ注入（スキーマ汚染およびストレージ枯渇DoS攻撃）を防ぐため許可フィールド以外を拒否
+    function hasOnlyAllowedFields(documentData, allowedFields) {
+      return documentData.keys().hasOnly(allowedFields);
+    }
+
+    // 型偽装（文字列や真偽値の混入）や NaN / Infinity 注入による計算破綻を防ぐため、
+    // 数値型（int または float）かつ指定閉区間内であることを検証
+    function isNumberInRange(numericValue, minimumValue, maximumValue) {
+      return (numericValue is int || numericValue is float)
+        && minimumValue <= numericValue
+        && numericValue <= maximumValue;
+    }
+
+    // クライアント側での時刻改ざん（ソート順の意図的な操作など）を防ぐため、
+    // serverTimestamp() によるサーバー到達時刻との一致を検証
+    function isServerTimestamp(timestampValue) {
+      return timestampValue is timestamp
+        && timestampValue == request.time;
+    }
+
+    // ===============================================================
+    // ドメインバリデータ（作品別スキーマ検証）
+    // ===============================================================
+
+    // テンプレート作品のパーティクルデータが不純物なく描画仕様を満たすことを保証し、
+    // 悪意あるペイロードから他の鑑賞者のブラウザ環境を保護するため厳格に検証
+    function isValidTemplateParticle(particleData) {
+      let allowedParticleFields = [
+      'normalizedX',
+      'normalizedY',
+      'hue',
+      'ownerUid',
+      'createdAt'
+      ];
+
+      return hasRequiredFields(particleData, allowedParticleFields)
+        && hasOnlyAllowedFields(particleData, allowedParticleFields)
+        && isNumberInRange(particleData.normalizedX, 0.0, 1.0)
+        && isNumberInRange(particleData.normalizedY, 0.0, 1.0)
+        && isNumberInRange(particleData.hue, 0, 360)
+        && isOwner(particleData.ownerUid)
+        && isServerTimestamp(particleData.createdAt);
+    }
+    // -------------------------------------------------------------
+    // 01-starry-sky-crud: 新規星データの検証（Create用）
+    // -------------------------------------------------------------
+    function isValidStarCreate(starData) {
+      let allowedStarFields = [
+      'normalizedX',
+      'normalizedY',
+      'colorIndex',
+      'magnitude',
+      'createdAt',
+      'updatedAt'
+      ];
+
+      return hasRequiredFields(starData, allowedStarFields)
+        && hasOnlyAllowedFields(starData, allowedStarFields)
+        && isNumberInRange(starData.normalizedX, 0.0, 1.0)
+        && isNumberInRange(starData.normalizedY, 0.0, 1.0)
+        && (starData.colorIndex is int && starData.colorIndex >= 0 && starData.colorIndex <= 3)
+        && (starData.magnitude is int && starData.magnitude >= 1 && starData.magnitude <= 3)
+        && isServerTimestamp(starData.createdAt)
+        && isServerTimestamp(starData.updatedAt);
+    }
+
+    // -------------------------------------------------------------
+    // 01-starry-sky-crud: 星データ更新時の検証（Update用）
+    // -------------------------------------------------------------
+    function isValidStarUpdate(afterData, beforeData) {
+      let allowedStarFields = [
+      'normalizedX',
+      'normalizedY',
+      'colorIndex',
+      'magnitude',
+      'createdAt',
+      'updatedAt'
+      ];
+
+      return hasRequiredFields(afterData, allowedStarFields)
+        && hasOnlyAllowedFields(afterData, allowedStarFields)
+      // 座標と誕生時刻の改ざんを禁止（作成時と完全一致を強制）
+        && afterData.normalizedX == beforeData.normalizedX
+        && afterData.normalizedY == beforeData.normalizedY
+        && afterData.createdAt == beforeData.createdAt
+      // 色と大きさの妥当性
+        && (afterData.colorIndex is int && afterData.colorIndex >= 0 && afterData.colorIndex <= 3)
+        && (afterData.magnitude is int && afterData.magnitude >= 1 && afterData.magnitude <= 3)
+      // 更新時刻は最新のサーバー時刻であること
+        && isServerTimestamp(afterData.updatedAt);
+    }
+
+    // ===============================================================
+    // 作品別セキュリティルール（/works/{workId}/...）
+    // ===============================================================
+
+    // テンプレート作品の名前空間
+    match /works/_template/particles/{particleId} {
+      // ログイン不要で誰でもリアルタイムにアート作品を鑑賞できる公開ギャラリー体験を実現するため許可
+      // （ドキュメント内にPIIを含めない設計により安全に公開可能）
+      allow read: if true;
+
+      // 匿名認証を含む認証済みユーザーのみに生成を限定し、かつ厳格なスキーマ・本人性検証を通過したデータのみ受け入れるため
+      allow create: if isAuthenticated()
+        && isValidTemplateParticle(request.resource.data);
+
+      // 一度描かれたパーティクルの不変性を保ち、作成後のデータ改ざん（Update Bypass）を根絶するため拒否
+      allow update: if false;
+
+      // 誤操作時やリセット時に作成者本人のみが自分のパーティクルを取り消せるようにし、他者の作品破壊を防ぐため
+      allow delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // 第1作「星空のCRUD」の名前空間
+    match /works/01-starry-sky-crud/stars/{starId} {
+      // 誰でも夜空をリアルタイム鑑賞可能
+      allow read: if true;
+
+      // 認証済み（匿名含む）で、正規スキーマの星のみ作成許可
+      allow create: if isAuthenticated()
+        && isValidStarCreate(request.resource.data);
+
+      // 認証済みで、位置座標をいじらない更新のみ許可
+      allow update: if isAuthenticated()
+        && isValidStarUpdate(request.resource.data, resource.data);
+
+      // 認証済みであれば、長押しで流れ星にして消すことを許可
+      allow delete: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // 新規作品の追加ガイド（拡張ポイント）
+    // ===============================================================
+    // 新しい作品（例: /works/01-ripple-garden/...）を追加する際は、
+  // ワイルドカード（/works/{workId}/...）で一括許可せず、作品ごとに独立した match ブロックと
+    // 専用のバリデータ関数をこの下に定義してください。
+    // 作品単位でルールを明示的に分離することで、ある作品のルール変更が過去作品のセキュリティを
+    // 意図せず弱体化させる事故を防ぎます。
+    //
+    // 拡張記述イメージ:
+  // match /works/01-your-work-slug/elements/{elementId} {
+    //   allow read: if true;
+    //   allow create: if isAuthenticated() && isValidYourWorkElement(request.resource.data);
+    //   allow update: if false;
+    //   allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+    // }
+
+    // ===============================================================
+    // デフォルト拒否（Default Deny）
+    // ===============================================================
+
+    // 未定義のコレクションや作成途中の作品パスへの意図しないアクセス・データ漏洩を完全に遮断するため、
+    // 明示的に許可したパス以外のすべての読み書きを拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
